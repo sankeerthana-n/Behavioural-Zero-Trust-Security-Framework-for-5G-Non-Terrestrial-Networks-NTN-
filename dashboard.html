@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BZT-NTN Security Framework Dashboard</title>
+<meta name="description" content="Behavioural Zero-Trust Security Framework for 5G Non-Terrestrial Networks - Live Dashboard">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+:root{--bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;--border:#2a3450;--text:#e2e8f0;--text2:#94a3b8;--accent:#3b82f6;--green:#10b981;--yellow:#f59e0b;--red:#ef4444;--purple:#8b5cf6;--cyan:#06b6d4}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+header{background:linear-gradient(135deg,#0f172a 0%,#1e1b4b 50%,#0f172a 100%);padding:16px 24px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;backdrop-filter:blur(10px)}
+header h1{font-size:1.3rem;font-weight:700;background:linear-gradient(135deg,var(--cyan),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+header .sub{font-size:.75rem;color:var(--text2);margin-top:2px}
+#clock{font-size:.85rem;color:var(--cyan);font-weight:500;font-variant-numeric:tabular-nums}
+.grid{display:grid;gap:16px;padding:16px;grid-template-columns:repeat(4,1fr)}
+.row2{grid-template-columns:1fr 1fr}
+.row3{grid-template-columns:1fr 1fr 1fr}
+.full{grid-template-columns:1fr}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;transition:transform .2s,box-shadow .2s}
+.card:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(0,0,0,.3)}
+.card h3{font-size:.75rem;text-transform:uppercase;letter-spacing:1px;color:var(--text2);margin-bottom:8px}
+.kpi-val{font-size:1.8rem;font-weight:700}
+.kpi-unit{font-size:.7rem;color:var(--text2);margin-left:4px}
+.kpi-bar{height:4px;border-radius:2px;margin-top:8px;background:var(--border);overflow:hidden}
+.kpi-bar-fill{height:100%;border-radius:2px;transition:width .5s}
+.green{color:var(--green)}.yellow{color:var(--yellow)}.red{color:var(--red)}.cyan{color:var(--cyan)}.purple{color:var(--purple)}
+.bg-green{background:var(--green)}.bg-yellow{background:var(--yellow)}.bg-red{background:var(--red)}.bg-cyan{background:var(--cyan)}.bg-purple{background:var(--purple)}
+table{width:100%;border-collapse:collapse;font-size:.78rem}
+th{text-align:left;padding:8px;color:var(--text2);font-weight:500;border-bottom:1px solid var(--border);font-size:.7rem;text-transform:uppercase;letter-spacing:.5px}
+td{padding:6px 8px;border-bottom:1px solid rgba(42,52,80,.5)}
+tr.deny{background:rgba(239,68,68,.12)}
+tr.challenge{background:rgba(245,158,11,.1)}
+tr.allow{background:rgba(16,185,129,.05)}
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:.65rem;font-weight:600;text-transform:uppercase}
+.badge-allow{background:rgba(16,185,129,.15);color:var(--green)}
+.badge-challenge{background:rgba(245,158,11,.15);color:var(--yellow)}
+.badge-deny{background:rgba(239,68,68,.15);color:var(--red)}
+.badge-threat{background:rgba(239,68,68,.2);color:var(--red);font-size:.6rem;margin-top:2px;display:inline-block;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.attack-feed{max-height:280px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.attack-item{padding:8px;border-left:3px solid var(--red);margin-bottom:6px;background:rgba(239,68,68,.06);border-radius:0 6px 6px 0;font-size:.75rem}
+.attack-item .type{color:var(--red);font-weight:600;text-transform:uppercase}
+.attack-item .detail{color:var(--text2);margin-top:2px}
+.cache-layer{margin-bottom:8px}
+.cache-layer .layer-name{font-weight:600;color:var(--cyan);font-size:.75rem;margin-bottom:4px}
+.chart-wrap{position:relative;height:220px}
+.btn-row{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;padding:8px}
+.btn{padding:10px 20px;border:none;border-radius:8px;font-weight:600;font-size:.8rem;cursor:pointer;transition:all .2s;font-family:inherit}
+.btn:hover{transform:translateY(-1px);box-shadow:0 4px 15px rgba(0,0,0,.3)}
+.btn:active{transform:scale(.97)}
+.btn-spoof{background:linear-gradient(135deg,#dc2626,#b91c1c);color:#fff}
+.btn-replay{background:linear-gradient(135deg,#d97706,#b45309);color:#fff}
+.btn-imp{background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.gauge-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;height:200px}
+.gauge-svg{width:180px;height:100px}
+.gauge-label{font-size:.75rem;color:var(--text2);margin-top:4px}
+.gauge-value{font-size:2rem;font-weight:700;margin-top:-10px}
+.status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.telemetry-table{max-height:300px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+</style>
+</head>
+<body>
+<header>
+  <div><h1>BZT-NTN Security Framework</h1><div class="sub">Behavioural Zero-Trust for 5G Non-Terrestrial Networks</div></div>
+  <div style="text-align:right"><div id="clock">--:--:--</div><div style="font-size:.65rem;color:var(--text2)"><span class="status-dot bg-green"></span>System Active</div></div>
+</header>
+
+<!-- KPI Cards -->
+<div class="grid" id="kpi-row">
+  <div class="card" id="kpi-latency"><h3>Avg Auth Latency</h3><div class="kpi-val cyan">--<span class="kpi-unit">ms</span></div><div class="kpi-bar"><div class="kpi-bar-fill bg-cyan" style="width:0%"></div></div></div>
+  <div class="card" id="kpi-cache"><h3>Cache Hit Rate</h3><div class="kpi-val green">--<span class="kpi-unit">%</span></div><div class="kpi-bar"><div class="kpi-bar-fill bg-green" style="width:0%"></div></div></div>
+  <div class="card" id="kpi-detect"><h3>Spoofing Detection</h3><div class="kpi-val purple">--<span class="kpi-unit">%</span></div><div class="kpi-bar"><div class="kpi-bar-fill bg-purple" style="width:0%"></div></div></div>
+  <div class="card" id="kpi-session"><h3>Session Continuity</h3><div class="kpi-val green">--<span class="kpi-unit">%</span></div><div class="kpi-bar"><div class="kpi-bar-fill bg-green" style="width:0%"></div></div></div>
+</div>
+
+<!-- Middle row: Gauge + Chart + Attack Feed -->
+<div class="grid row3">
+  <div class="card"><h3>Trust Score (Latest)</h3><div class="gauge-wrap"><svg class="gauge-svg" viewBox="0 0 200 110" id="gauge-svg"></svg><div class="gauge-value" id="gauge-val">--</div><div class="gauge-label" id="gauge-node">--</div></div></div>
+  <div class="card"><h3>Latency Comparison (Traditional vs Zero-Trust)</h3><div class="chart-wrap"><canvas id="latencyChart"></canvas></div></div>
+  <div class="card"><h3>Attack Events</h3><div class="attack-feed" id="attack-feed"><div style="color:var(--text2);font-size:.8rem;padding:20px;text-align:center">Waiting for attacks...</div></div></div>
+</div>
+
+<!-- Cache + Overhead -->
+<div class="grid row2">
+  <div class="card"><h3>Proactive Cache State</h3><div id="cache-state"></div></div>
+  <div class="card"><h3>Signalling Overhead & Stats</h3><div id="stats-panel"></div></div>
+</div>
+
+<!-- Telemetry Table -->
+<div class="grid full">
+  <div class="card"><h3>Node Telemetry & Decisions (Live)</h3><div class="telemetry-table" id="telemetry-table"></div></div>
+</div>
+
+<!-- Inject Buttons -->
+<div class="grid full">
+  <div class="card"><h3>Attack Injection Controls</h3><div class="btn-row">
+    <button class="btn btn-spoof" onclick="inject('velocity_spoof')" id="btn-spoof">Inject Velocity Spoof</button>
+    <button class="btn btn-replay" onclick="inject('replay')" id="btn-replay">Inject Replay Attack</button>
+    <button class="btn btn-imp" onclick="inject('impersonation')" id="btn-imp">Inject Node Impersonation</button>
+  </div></div>
+</div>
+
+<script>
+const API='http://localhost:8000';
+let latencyChart;
+const tradData=[];const ztData=[];const labels=[];let chartTick=0;
+
+// Clock
+setInterval(()=>{document.getElementById('clock').textContent=new Date().toLocaleTimeString()},1000);
+
+// Chart.js setup
+function initChart(){
+  const ctx=document.getElementById('latencyChart').getContext('2d');
+  latencyChart=new Chart(ctx,{type:'line',data:{labels:[],datasets:[
+    {label:'Traditional 5G',data:[],borderColor:'#ef4444',backgroundColor:'rgba(239,68,68,.1)',borderWidth:2,pointRadius:0,tension:.3,fill:true},
+    {label:'Zero-Trust Cached',data:[],borderColor:'#06b6d4',backgroundColor:'rgba(6,182,212,.1)',borderWidth:2,pointRadius:0,tension:.3,fill:true}
+  ]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:300},scales:{
+    x:{display:true,grid:{color:'rgba(42,52,80,.5)'},ticks:{color:'#94a3b8',font:{size:9},maxTicksLimit:10}},
+    y:{display:true,grid:{color:'rgba(42,52,80,.5)'},ticks:{color:'#94a3b8',font:{size:10},callback:v=>v+'ms'},min:0}
+  },plugins:{legend:{labels:{color:'#e2e8f0',font:{size:11}}}}}});
+}
+initChart();
+
+// Gauge SVG
+function drawGauge(score){
+  const svg=document.getElementById('gauge-svg');
+  const pct=Math.max(0,Math.min(100,score))/100;
+  const angle=Math.PI*pct;
+  const ex=100-90*Math.cos(angle);const ey=100-90*Math.sin(angle);
+  let color=score>=70?'#10b981':score>=40?'#f59e0b':'#ef4444';
+  svg.innerHTML=`<path d="M 10 100 A 90 90 0 0 1 190 100" fill="none" stroke="#1a2235" stroke-width="14" stroke-linecap="round"/>
+    <path d="M 10 100 A 90 90 0 ${pct>.5?1:0} 1 ${ex} ${ey}" fill="none" stroke="${color}" stroke-width="14" stroke-linecap="round"/>`;
+  document.getElementById('gauge-val').textContent=score.toFixed(1);
+  document.getElementById('gauge-val').style.color=color;
+}
+drawGauge(0);
+
+// KPI update
+function updateKPI(id,value,max,unit){
+  const card=document.getElementById(id);
+  const valEl=card.querySelector('.kpi-val');
+  const fill=card.querySelector('.kpi-bar-fill');
+  const num=typeof value==='number'?value.toFixed(1):value;
+  valEl.innerHTML=num+'<span class="kpi-unit">'+unit+'</span>';
+  fill.style.width=Math.min(100,(value/max)*100)+'%';
+}
+
+// Fetch helpers
+async function fetchJSON(path){try{const r=await fetch(API+path);return await r.json()}catch(e){return null}}
+
+// Poll metrics
+async function pollMetrics(){
+  const m=await fetchJSON('/metrics');if(!m)return;
+  updateKPI('kpi-latency',m.avg_auth_latency_ms,50,'ms');
+  updateKPI('kpi-cache',m.cache_hit_rate,100,'%');
+  updateKPI('kpi-detect',m.spoofing_detection_rate,100,'%');
+  updateKPI('kpi-session',m.session_continuity_rate,100,'%');
+
+  // Latency chart
+  if(m.traditional_latencies&&m.traditional_latencies.length>0){
+    const trad=m.traditional_latencies;const zt=m.zt_latencies;
+    latencyChart.data.labels=trad.map((_,i)=>''+(chartTick-trad.length+i+1));
+    latencyChart.data.datasets[0].data=trad;
+    latencyChart.data.datasets[1].data=zt;
+    latencyChart.update('none');
+    chartTick=Math.max(chartTick,chartTick+1);
+  }
+
+  // Stats panel
+  const sp=document.getElementById('stats-panel');
+  sp.innerHTML=`<table><tr><td style="color:var(--text2)">Signalling Overhead</td><td style="font-weight:600">${m.signalling_overhead_pct}%</td><td>${m.signalling_overhead_pct<8?'<span class="green">OK</span>':'<span class="red">HIGH</span>'}</td></tr>
+  <tr><td style="color:var(--text2)">Total Evaluations</td><td style="font-weight:600">${m.total_evaluated}</td><td></td></tr>
+  <tr><td style="color:var(--text2)">Threats Detected</td><td style="font-weight:600;color:var(--red)">${m.threats_detected}</td><td></td></tr>
+  <tr><td style="color:var(--text2)">Spoofed Records</td><td style="font-weight:600">${m.spoofed_total}</td><td>Caught: ${m.spoofed_caught}</td></tr>
+  <tr><td style="color:var(--text2)">Cache Hits/Misses</td><td style="font-weight:600;color:var(--green)">${m.cache_hits}</td><td style="color:var(--red)">${m.cache_misses}</td></tr></table>`;
+}
+
+// Poll decisions
+async function pollDecisions(){
+  const d=await fetchJSON('/decisions');if(!d||!d.length)return;
+  const last=d[d.length-1];
+  drawGauge(last.trust_score||0);
+  document.getElementById('gauge-node').textContent=last.node_id+' ('+last.layer+') - '+last.decision;
+
+  // Table
+  const wrap=document.getElementById('telemetry-table');
+  let html='<table><tr><th>Node</th><th>Layer</th><th>Trust</th><th>Decision</th><th>Velocity</th><th>Latency</th><th>Cache</th><th>Threat</th></tr>';
+  d.slice(-30).reverse().forEach(r=>{
+    const cls=r.decision==='DENY'?'deny':r.decision==='CHALLENGE'?'challenge':'allow';
+    const badge=r.decision==='ALLOW'?'badge-allow':r.decision==='CHALLENGE'?'badge-challenge':'badge-deny';
+    html+=`<tr class="${cls}"><td>${r.node_id}</td><td>${r.layer}</td>
+      <td style="font-weight:600;color:${r.trust_score>=70?'var(--green)':r.trust_score>=40?'var(--yellow)':'var(--red)'}">${(r.trust_score||0).toFixed(1)}</td>
+      <td><span class="badge ${badge}">${r.decision}</span></td>
+      <td>${r.velocity_score!==undefined?(r.velocity_score*100).toFixed(0)+'%':'--'}</td>
+      <td>${(r.auth_latency_ms||0).toFixed(1)}ms</td>
+      <td>${r.cache_hit?'<span class="green">HIT</span>':'<span class="red">MISS</span>'}</td>
+      <td>${r.threat_type?'<span class="badge-threat">'+r.threat_type+'</span>':'<span style="color:var(--text2)">-</span>'}</td></tr>`;
+  });
+  html+='</table>';wrap.innerHTML=html;
+}
+
+// Poll attacks
+async function pollAttacks(){
+  const a=await fetchJSON('/attacks');if(!a||!a.length)return;
+  const feed=document.getElementById('attack-feed');
+  let html='';
+  a.slice(-20).reverse().forEach(ev=>{
+    html+=`<div class="attack-item"><div class="type">${ev.type}</div><div class="detail">${ev.detail}</div><div style="color:var(--text2);font-size:.65rem;margin-top:2px">Tick ${ev.tick} | ${ev.node_id}</div></div>`;
+  });
+  feed.innerHTML=html||'<div style="color:var(--text2);font-size:.8rem;padding:20px;text-align:center">No attacks yet</div>';
+}
+
+// Poll cache
+async function pollCache(){
+  const c=await fetchJSON('/cache_state');if(!c)return;
+  const el=document.getElementById('cache-state');
+  let html='';
+  ['HAPS','LEO','MEO','GEO'].forEach(layer=>{
+    const entries=c[layer]||[];
+    html+=`<div class="cache-layer"><div class="layer-name">${layer} (${entries.length} tokens)</div>`;
+    if(entries.length){
+      html+='<table><tr><th>Node</th><th>Token</th><th>TTL</th><th>Status</th></tr>';
+      entries.forEach(e=>{html+=`<tr><td>${e.node_id}</td><td style="font-family:monospace;font-size:.7rem">${e.token}</td><td>${e.ttl_remaining_s}s</td><td>${e.expired?'<span class="red">EXPIRED</span>':'<span class="green">ACTIVE</span>'}</td></tr>`});
+      html+='</table>';
+    } else {html+='<div style="color:var(--text2);font-size:.7rem">Empty</div>'}
+    html+='</div>';
+  });
+  el.innerHTML=html;
+}
+
+// Inject attack
+async function inject(type){
+  const btns=document.querySelectorAll('.btn');btns.forEach(b=>b.disabled=true);
+  try{await fetch(API+'/inject_attack',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type})})}catch(e){}
+  setTimeout(()=>btns.forEach(b=>b.disabled=false),1500);
+}
+
+// Main poll loop
+async function poll(){await Promise.all([pollMetrics(),pollDecisions(),pollAttacks(),pollCache()])}
+setInterval(poll,1000);
+poll();
+</script>
+</body>
+</html>

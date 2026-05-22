@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BZT-NTN ML Security Framework Dashboard</title>
+<meta name="description" content="ML-Enhanced Behavioural Zero-Trust Security Framework for 5G NTN">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+:root{--bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;--border:#2a3450;--text:#e2e8f0;--text2:#94a3b8;--accent:#3b82f6;--green:#10b981;--yellow:#f59e0b;--red:#ef4444;--purple:#8b5cf6;--cyan:#06b6d4;--orange:#f97316;--pink:#ec4899}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+header{background:linear-gradient(135deg,#0f172a 0%,#1e1b4b 50%,#0f172a 100%);padding:16px 24px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
+header h1{font-size:1.3rem;font-weight:700;background:linear-gradient(135deg,var(--cyan),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+header .sub{font-size:.75rem;color:var(--text2);margin-top:2px}
+.ml-badge-header{display:inline-block;padding:3px 10px;border-radius:6px;font-size:.65rem;font-weight:700;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;margin-left:10px;letter-spacing:.5px}
+#clock{font-size:.85rem;color:var(--cyan);font-weight:500;font-variant-numeric:tabular-nums}
+.grid{display:grid;gap:16px;padding:16px;grid-template-columns:repeat(4,1fr)}
+.row2{grid-template-columns:1fr 1fr}
+.row3{grid-template-columns:1fr 1fr 1fr}
+.full{grid-template-columns:1fr}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;transition:transform .2s,box-shadow .2s}
+.card:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(0,0,0,.3)}
+.card h3{font-size:.75rem;text-transform:uppercase;letter-spacing:1px;color:var(--text2);margin-bottom:8px}
+.kpi-val{font-size:1.8rem;font-weight:700}
+.kpi-unit{font-size:.7rem;color:var(--text2);margin-left:4px}
+.kpi-bar{height:4px;border-radius:2px;margin-top:8px;background:var(--border);overflow:hidden}
+.kpi-bar-fill{height:100%;border-radius:2px;transition:width .5s}
+.green{color:var(--green)}.yellow{color:var(--yellow)}.red{color:var(--red)}.cyan{color:var(--cyan)}.purple{color:var(--purple)}.orange{color:var(--orange)}.pink{color:var(--pink)}
+.bg-green{background:var(--green)}.bg-yellow{background:var(--yellow)}.bg-red{background:var(--red)}.bg-cyan{background:var(--cyan)}.bg-purple{background:var(--purple)}
+table{width:100%;border-collapse:collapse;font-size:.78rem}
+th{text-align:left;padding:8px;color:var(--text2);font-weight:500;border-bottom:1px solid var(--border);font-size:.7rem;text-transform:uppercase;letter-spacing:.5px}
+td{padding:6px 8px;border-bottom:1px solid rgba(42,52,80,.5)}
+tr.deny{background:rgba(239,68,68,.12)}
+tr.challenge{background:rgba(245,158,11,.1)}
+tr.allow{background:rgba(16,185,129,.05)}
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:.65rem;font-weight:600;text-transform:uppercase}
+.badge-allow{background:rgba(16,185,129,.15);color:var(--green)}
+.badge-challenge{background:rgba(245,158,11,.15);color:var(--yellow)}
+.badge-deny{background:rgba(239,68,68,.15);color:var(--red)}
+.badge-threat{background:rgba(239,68,68,.2);color:var(--red);font-size:.6rem;margin-top:2px;display:inline-block;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Detection method badges with flash animations */
+.badge-ml{background:rgba(139,92,246,.25);color:var(--purple);animation:flashPurple 1.5s ease-in-out}
+.badge-physics{background:rgba(6,182,212,.25);color:var(--cyan);animation:flashCyan 1.5s ease-in-out}
+.badge-hybrid{background:rgba(249,115,22,.25);color:var(--orange);animation:flashOrange 1.5s ease-in-out}
+.badge-none{background:rgba(148,163,184,.1);color:var(--text2)}
+@keyframes flashPurple{0%{background:rgba(139,92,246,.6);box-shadow:0 0 15px rgba(139,92,246,.5)}100%{background:rgba(139,92,246,.25);box-shadow:none}}
+@keyframes flashCyan{0%{background:rgba(6,182,212,.6);box-shadow:0 0 15px rgba(6,182,212,.5)}100%{background:rgba(6,182,212,.25);box-shadow:none}}
+@keyframes flashOrange{0%{background:rgba(249,115,22,.6);box-shadow:0 0 15px rgba(249,115,22,.5)}100%{background:rgba(249,115,22,.25);box-shadow:none}}
+.attack-feed{max-height:280px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.attack-item{padding:8px;border-left:3px solid var(--red);margin-bottom:6px;background:rgba(239,68,68,.06);border-radius:0 6px 6px 0;font-size:.75rem}
+.attack-item .type{color:var(--red);font-weight:600;text-transform:uppercase}
+.attack-item .detail{color:var(--text2);margin-top:2px}
+.chart-wrap{position:relative;height:220px}
+.btn-row{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;padding:8px}
+.btn{padding:10px 20px;border:none;border-radius:8px;font-weight:600;font-size:.8rem;cursor:pointer;transition:all .2s;font-family:inherit}
+.btn:hover{transform:translateY(-1px);box-shadow:0 4px 15px rgba(0,0,0,.3)}
+.btn:active{transform:scale(.97)}
+.btn-spoof{background:linear-gradient(135deg,#dc2626,#b91c1c);color:#fff}
+.btn-replay{background:linear-gradient(135deg,#d97706,#b45309);color:#fff}
+.btn-imp{background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.gauge-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;height:200px}
+.gauge-svg{width:180px;height:100px}
+.gauge-label{font-size:.75rem;color:var(--text2);margin-top:4px}
+.gauge-value{font-size:2rem;font-weight:700;margin-top:-10px}
+.status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.telemetry-table{max-height:300px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.ml-info-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:.78rem}
+.ml-info-grid .lbl{color:var(--text2)}.ml-info-grid .val{font-weight:600;color:var(--cyan)}
+.ml-catch-bar{display:flex;height:20px;border-radius:4px;overflow:hidden;margin-top:8px;font-size:.6rem;font-weight:600}
+.ml-catch-bar div{display:flex;align-items:center;justify-content:center;transition:width .5s}
+.ml-seg-ml{background:var(--purple);color:#fff}
+.ml-seg-physics{background:var(--cyan);color:#000}
+.ml-seg-hybrid{background:var(--orange);color:#fff}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>BZT-NTN Security Framework <span class="ml-badge-header">ML-ENHANCED</span></h1>
+    <div class="sub">Isolation Forest Anomaly Detection + Physics-Based Verification</div>
+  </div>
+  <div style="text-align:right"><div id="clock">--:--:--</div><div style="font-size:.65rem;color:var(--text2)"><span class="status-dot bg-purple"></span>ML Engine Active</div></div>
+</header>
+
+<!-- KPI Cards -->
+<div class="grid" id="kpi-row">
+  <div class="card" id="kpi-latency"><h3>Avg Auth Latency</h3><div class="kpi-val cyan">--<span class="kpi-unit">ms</span></div><div class="kpi-bar"><div class="kpi-bar-fill bg-cyan" style="width:0%"></div></div></div>
+  <div class="card" id="kpi-cache"><h3>Cache Hit Rate</h3><div class="kpi-val green">--<span class="kpi-unit">%</span></div><div class="kpi-bar"><div class="kpi-bar-fill bg-green" style="width:0%"></div></div></div>
+  <div class="card" id="kpi-detect"><h3>Spoofing Detection</h3><div class="kpi-val purple">--<span class="kpi-unit">%</span></div><div class="kpi-bar"><div class="kpi-bar-fill bg-purple" style="width:0%"></div></div></div>
+  <div class="card" id="kpi-session"><h3>Session Continuity</h3><div class="kpi-val green">--<span class="kpi-unit">%</span></div><div class="kpi-bar"><div class="kpi-bar-fill bg-green" style="width:0%"></div></div></div>
+</div>
+
+<!-- Middle row: Gauge + Chart + Attack Feed -->
+<div class="grid row3">
+  <div class="card"><h3>Trust Score (Latest)</h3><div class="gauge-wrap"><svg class="gauge-svg" viewBox="0 0 200 110" id="gauge-svg"></svg><div class="gauge-value" id="gauge-val">--</div><div class="gauge-label" id="gauge-node">--</div></div></div>
+  <div class="card"><h3>Latency: Traditional vs Zero-Trust</h3><div class="chart-wrap"><canvas id="latencyChart"></canvas></div></div>
+  <div class="card"><h3>Attack Events</h3><div class="attack-feed" id="attack-feed"><div style="color:var(--text2);font-size:.8rem;padding:20px;text-align:center">Waiting for attacks...</div></div></div>
+</div>
+
+<!-- ML Info + Detection Breakdown + Cache -->
+<div class="grid row3">
+  <div class="card"><h3>ML Model Info</h3><div class="ml-info-grid" id="ml-info"><div class="lbl">Loading...</div></div></div>
+  <div class="card"><h3>Detection Method Breakdown</h3><div id="detection-breakdown"></div><div class="ml-catch-bar" id="catch-bar"></div></div>
+  <div class="card"><h3>Signalling Overhead & Stats</h3><div id="stats-panel"></div></div>
+</div>
+
+<!-- Cache State -->
+<div class="grid full">
+  <div class="card"><h3>Proactive Cache State</h3><div id="cache-state" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px"></div></div>
+</div>
+
+<!-- Telemetry Table -->
+<div class="grid full">
+  <div class="card"><h3>Node Telemetry & Decisions (Live) -- Detection Method Color-Coded</h3><div class="telemetry-table" id="telemetry-table"></div></div>
+</div>
+
+<!-- Inject Buttons -->
+<div class="grid full">
+  <div class="card"><h3>Attack Injection Controls</h3><div class="btn-row">
+    <button class="btn btn-spoof" onclick="inject('velocity_spoof')" id="btn-spoof">Inject Velocity Spoof</button>
+    <button class="btn btn-replay" onclick="inject('replay')" id="btn-replay">Inject Replay Attack</button>
+    <button class="btn btn-imp" onclick="inject('impersonation')" id="btn-imp">Inject Node Impersonation</button>
+  </div></div>
+</div>
+
+<script>
+const API='http://localhost:8001';
+let latencyChart;let chartTick=0;
+
+setInterval(()=>{document.getElementById('clock').textContent=new Date().toLocaleTimeString()},1000);
+
+function initChart(){
+  const ctx=document.getElementById('latencyChart').getContext('2d');
+  latencyChart=new Chart(ctx,{type:'line',data:{labels:[],datasets:[
+    {label:'Traditional 5G',data:[],borderColor:'#ef4444',backgroundColor:'rgba(239,68,68,.1)',borderWidth:2,pointRadius:0,tension:.3,fill:true},
+    {label:'Zero-Trust (ML)',data:[],borderColor:'#8b5cf6',backgroundColor:'rgba(139,92,246,.1)',borderWidth:2,pointRadius:0,tension:.3,fill:true}
+  ]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:300},scales:{
+    x:{display:true,grid:{color:'rgba(42,52,80,.5)'},ticks:{color:'#94a3b8',font:{size:9},maxTicksLimit:10}},
+    y:{display:true,grid:{color:'rgba(42,52,80,.5)'},ticks:{color:'#94a3b8',font:{size:10},callback:v=>v+'ms'},min:0}
+  },plugins:{legend:{labels:{color:'#e2e8f0',font:{size:11}}}}}});
+}
+initChart();
+
+function drawGauge(score){
+  const svg=document.getElementById('gauge-svg');
+  const pct=Math.max(0,Math.min(100,score))/100;
+  const angle=Math.PI*pct;
+  const ex=100-90*Math.cos(angle);const ey=100-90*Math.sin(angle);
+  let color=score>=70?'#10b981':score>=40?'#f59e0b':'#ef4444';
+  svg.innerHTML=`<path d="M 10 100 A 90 90 0 0 1 190 100" fill="none" stroke="#1a2235" stroke-width="14" stroke-linecap="round"/>
+    <path d="M 10 100 A 90 90 0 ${pct>.5?1:0} 1 ${ex} ${ey}" fill="none" stroke="${color}" stroke-width="14" stroke-linecap="round"/>`;
+  document.getElementById('gauge-val').textContent=score.toFixed(1);
+  document.getElementById('gauge-val').style.color=color;
+}
+drawGauge(0);
+
+function updateKPI(id,value,max,unit){
+  const card=document.getElementById(id);
+  const valEl=card.querySelector('.kpi-val');
+  const fill=card.querySelector('.kpi-bar-fill');
+  valEl.innerHTML=(typeof value==='number'?value.toFixed(1):value)+'<span class="kpi-unit">'+unit+'</span>';
+  fill.style.width=Math.min(100,(value/max)*100)+'%';
+}
+
+async function fetchJSON(path){try{const r=await fetch(API+path);return await r.json()}catch(e){return null}}
+
+function methodBadge(method){
+  const cls={ml:'badge-ml',physics:'badge-physics',hybrid:'badge-hybrid',none:'badge-none'}[method]||'badge-none';
+  const label={ml:'ML CATCH',physics:'PHYSICS CATCH',hybrid:'HYBRID CATCH',none:'CLEAR'}[method]||method;
+  return `<span class="badge ${cls}">${label}</span>`;
+}
+
+async function pollMetrics(){
+  const m=await fetchJSON('/metrics');if(!m)return;
+  updateKPI('kpi-latency',m.avg_auth_latency_ms,50,'ms');
+  updateKPI('kpi-cache',m.cache_hit_rate,100,'%');
+  updateKPI('kpi-detect',m.spoofing_detection_rate,100,'%');
+  updateKPI('kpi-session',m.session_continuity_rate,100,'%');
+
+  if(m.traditional_latencies&&m.traditional_latencies.length>0){
+    latencyChart.data.labels=m.traditional_latencies.map((_,i)=>''+(chartTick-m.traditional_latencies.length+i+1));
+    latencyChart.data.datasets[0].data=m.traditional_latencies;
+    latencyChart.data.datasets[1].data=m.zt_latencies;
+    latencyChart.update('none');chartTick++;
+  }
+
+  // Detection breakdown
+  const ml=m.ml_catches||0;const ph=m.physics_catches||0;const hy=m.hybrid_catches||0;
+  const total=ml+ph+hy||1;
+  document.getElementById('detection-breakdown').innerHTML=`
+    <table><tr><td style="color:var(--purple)">ML Catches</td><td style="font-weight:700">${ml}</td><td>${(ml/total*100).toFixed(1)}%</td></tr>
+    <tr><td style="color:var(--cyan)">Physics Catches</td><td style="font-weight:700">${ph}</td><td>${(ph/total*100).toFixed(1)}%</td></tr>
+    <tr><td style="color:var(--orange)">Hybrid Catches</td><td style="font-weight:700">${hy}</td><td>${(hy/total*100).toFixed(1)}%</td></tr></table>`;
+  document.getElementById('catch-bar').innerHTML=`
+    <div class="ml-seg-ml" style="width:${ml/total*100}%">${ml>0?(ml/total*100).toFixed(0)+'%':''}</div>
+    <div class="ml-seg-physics" style="width:${ph/total*100}%">${ph>0?(ph/total*100).toFixed(0)+'%':''}</div>
+    <div class="ml-seg-hybrid" style="width:${hy/total*100}%">${hy>0?(hy/total*100).toFixed(0)+'%':''}</div>`;
+
+  const sp=document.getElementById('stats-panel');
+  sp.innerHTML=`<table><tr><td style="color:var(--text2)">Signalling Overhead</td><td style="font-weight:600">${m.signalling_overhead_pct}%</td><td>${m.signalling_overhead_pct<8?'<span class="green">OK</span>':'<span class="red">HIGH</span>'}</td></tr>
+  <tr><td style="color:var(--text2)">Total Evaluations</td><td style="font-weight:600">${m.total_evaluated}</td><td></td></tr>
+  <tr><td style="color:var(--text2)">Threats Detected</td><td style="font-weight:600;color:var(--red)">${m.threats_detected}</td><td></td></tr>
+  <tr><td style="color:var(--text2)">Spoofed Records</td><td style="font-weight:600">${m.spoofed_total}</td><td>Caught: ${m.spoofed_caught}</td></tr>
+  <tr><td style="color:var(--text2)">Cache Hits/Misses</td><td style="font-weight:600;color:var(--green)">${m.cache_hits}</td><td style="color:var(--red)">${m.cache_misses}</td></tr></table>`;
+}
+
+async function pollDecisions(){
+  const d=await fetchJSON('/decisions');if(!d||!d.length)return;
+  const last=d[d.length-1];
+  drawGauge(last.trust_score||0);
+  const meth=last.detection_method||'none';
+  document.getElementById('gauge-node').innerHTML=last.node_id+' ('+last.layer+') - '+last.decision+' '+methodBadge(meth);
+
+  const wrap=document.getElementById('telemetry-table');
+  let html='<table><tr><th>Node</th><th>Layer</th><th>Trust</th><th>Decision</th><th>Method</th><th>ML Score</th><th>Latency</th><th>Cache</th><th>Threat</th></tr>';
+  d.slice(-30).reverse().forEach(r=>{
+    const cls=r.decision==='DENY'?'deny':r.decision==='CHALLENGE'?'challenge':'allow';
+    const badge=r.decision==='ALLOW'?'badge-allow':r.decision==='CHALLENGE'?'badge-challenge':'badge-deny';
+    const meth=r.detection_method||'none';
+    html+=`<tr class="${cls}"><td>${r.node_id}</td><td>${r.layer}</td>
+      <td style="font-weight:600;color:${r.trust_score>=70?'var(--green)':r.trust_score>=40?'var(--yellow)':'var(--red)'}">${(r.trust_score||0).toFixed(1)}</td>
+      <td><span class="badge ${badge}">${r.decision}</span></td>
+      <td>${methodBadge(meth)}</td>
+      <td style="font-family:monospace;color:${(r.ml_anomaly_score||0)<0?'var(--red)':'var(--green)'}">${(r.ml_anomaly_score||0).toFixed(3)}</td>
+      <td>${(r.auth_latency_ms||0).toFixed(1)}ms</td>
+      <td>${r.cache_hit?'<span class="green">HIT</span>':'<span class="red">MISS</span>'}</td>
+      <td>${r.threat_type?'<span class="badge-threat">'+r.threat_type+'</span>':'<span style="color:var(--text2)">-</span>'}</td></tr>`;
+  });
+  html+='</table>';wrap.innerHTML=html;
+}
+
+async function pollAttacks(){
+  const a=await fetchJSON('/attacks');if(!a||!a.length)return;
+  const feed=document.getElementById('attack-feed');
+  let html='';
+  a.slice(-20).reverse().forEach(ev=>{
+    html+=`<div class="attack-item"><div class="type">${ev.type}</div><div class="detail">${ev.detail}</div><div style="color:var(--text2);font-size:.65rem;margin-top:2px">Tick ${ev.tick} | ${ev.node_id}</div></div>`;
+  });
+  feed.innerHTML=html||'<div style="color:var(--text2);font-size:.8rem;padding:20px;text-align:center">No attacks yet</div>';
+}
+
+async function pollCache(){
+  const c=await fetchJSON('/cache_state');if(!c)return;
+  const el=document.getElementById('cache-state');
+  let html='';
+  ['HAPS','LEO','MEO','GEO'].forEach(layer=>{
+    const entries=c[layer]||[];
+    html+=`<div><div style="font-weight:600;color:var(--cyan);font-size:.75rem;margin-bottom:4px">${layer} (${entries.length})</div>`;
+    if(entries.length){html+='<table><tr><th>Node</th><th>TTL</th><th>Status</th></tr>';
+      entries.forEach(e=>{html+=`<tr><td>${e.node_id}</td><td>${e.ttl_remaining_s}s</td><td>${e.expired?'<span class="red">EXP</span>':'<span class="green">OK</span>'}</td></tr>`});
+      html+='</table>'} else {html+='<div style="color:var(--text2);font-size:.7rem">Empty</div>'}
+    html+='</div>';
+  });
+  el.innerHTML=html;
+}
+
+async function pollMLInfo(){
+  const info=await fetchJSON('/ml_info');if(!info)return;
+  document.getElementById('ml-info').innerHTML=`
+    <div class="lbl">Algorithm</div><div class="val">${info.algorithm}</div>
+    <div class="lbl">Trees</div><div class="val">${info.n_estimators}</div>
+    <div class="lbl">Contamination</div><div class="val">${info.contamination}</div>
+    <div class="lbl">Max Samples</div><div class="val">${info.max_samples}</div>
+    <div class="lbl">Features</div><div class="val">${info.features?info.features.length:'-'}</div>
+    <div class="lbl">Scoring</div><div class="val">60% ML + 40% Physics</div>`;
+}
+pollMLInfo();
+
+async function inject(type){
+  const btns=document.querySelectorAll('.btn');btns.forEach(b=>b.disabled=true);
+  try{await fetch(API+'/inject_attack',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type})})}catch(e){}
+  setTimeout(()=>btns.forEach(b=>b.disabled=false),1500);
+}
+
+async function poll(){await Promise.all([pollMetrics(),pollDecisions(),pollAttacks(),pollCache()])}
+setInterval(poll,200);poll();
+</script>
+</body>
+</html>
